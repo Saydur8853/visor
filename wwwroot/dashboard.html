@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visor Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f4f5f7;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dashboard {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            text-align: center;
+            width: 90%;
+            max-width: 600px;
+        }
+
+        h1, h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .logout-button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .logout-button:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h1>Welcome, <span id="userName">User</span>!</h1>
+        <h2>Dashboard</h2>
+        <button class="logout-button" onclick="logout()">Logout</button>
+    </div>
+
+    <script>
+        // Retrieve user information from localStorage
+        const user = JSON.parse(localStorage.getItem('visor_user'));
+        
+        if (user) {
+            document.getElementById('userName').textContent = user.firstName;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('visor_token');
+            localStorage.removeItem('visor_user');
+            window.location.href = '/';
+        }
+
+        // Redirect to login if not authenticated
+        if (!localStorage.getItem('visor_token')) {
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
