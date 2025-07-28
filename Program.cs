@@ -10,6 +10,13 @@ using visor.Modules.UserManagement.Services;
 using visor.Modules.RoleManagement.Services;
 using visor.Modules.PolicyManagement.Services;
 using visor.Middleware;
+using DotNetEnv;
+
+// Load environment variables from .env file if it exists
+if (File.Exists(".env"))
+{
+    Env.Load();
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
