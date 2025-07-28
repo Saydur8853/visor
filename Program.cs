@@ -35,9 +35,18 @@ if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RDS_HOSTNAME")))
                     + "SslMode=Required;";
 }
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseMySql(connectionString, 
-        ServerVersion.AutoDetect(connectionString)));
+// Use in-memory database for development
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseInMemoryDatabase("VisorDevDB"));
+}
+else
+{
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseMySql(connectionString, 
+            ServerVersion.AutoDetect(connectionString)));
+}
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
@@ -99,6 +108,8 @@ builder.Services.AddAuthentication(options =>
     options.Cookie.IsEssential = true;
     options.Cookie.Name = "__visor_auth";
 })
+// Google OAuth temporarily disabled - uncomment and set environment variables to enable
+/*
 .AddGoogle(GoogleDefaults.AuthenticationScheme, options =>
 {
     options.ClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID") ?? throw new InvalidOperationException("GOOGLE_CLIENT_ID environment variable is not set");
@@ -152,6 +163,7 @@ builder.Services.AddAuthentication(options =>
     // Handle OAuth timeout issues
     options.RemoteAuthenticationTimeout = TimeSpan.FromMinutes(5);
 });
+*/;
 
 builder.Services.AddAuthorization();
 
@@ -194,19 +206,28 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Apply pending migrations automatically
+// Apply pending migrations automatically (only for non-in-memory databases)
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     try
     {
-        // Check if database exists and apply pending migrations
-        context.Database.Migrate();
-        Console.WriteLine("Database migrations applied successfully.");
+        // Only run migrations if not using in-memory database
+        if (!context.Database.IsInMemory())
+        {
+            context.Database.Migrate();
+            Console.WriteLine("Database migrations applied successfully.");
+        }
+        else
+        {
+            // For in-memory database, ensure it's created
+            context.Database.EnsureCreated();
+            Console.WriteLine("In-memory database created successfully.");
+        }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Error applying migrations: {ex.Message}");
+        Console.WriteLine($"Error setting up database: {ex.Message}");
         // Log the error but don't stop the application
         // You might want to implement proper logging here
     }
