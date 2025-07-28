@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
 using visor.Modules.Authentication.DTOs;
 using visor.Modules.Authentication.Services;
@@ -187,7 +190,7 @@ namespace visor.Modules.Authentication.Controllers
         }
 
         [HttpPost("external-login")]
-        public async Task<ActionResult<AuthResponseDto>> ExternalLogin(ExternalLoginDto externalLoginDto)
+        public ActionResult<AuthResponseDto> ExternalLogin(ExternalLoginDto externalLoginDto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -223,7 +226,7 @@ namespace visor.Modules.Authentication.Controllers
 
         [HttpPost("logout")]
         [Authorize]
-        public async Task<ActionResult> Logout()
+        public ActionResult Logout()
         {
             // TODO: Implement token blacklisting if needed
             // For stateless JWT, logout is handled client-side by removing the token
@@ -255,6 +258,44 @@ namespace visor.Modules.Authentication.Controllers
 
             return Ok(new { hasRole = hasRole, roleName = roleName });
         }
+
+        [HttpGet("signin-google")]
+        public IActionResult SignInGoogle()
+        {
+            try
+            {
+                Console.WriteLine("=== Starting Custom Google OAuth Flow ===");
+                Console.WriteLine($"Session ID: {HttpContext.Session.Id}");
+                Console.WriteLine($"Request URL: {Request.Scheme}://{Request.Host}{Request.Path}");
+                
+                // Generate a custom state parameter
+                var state = Guid.NewGuid().ToString();
+                HttpContext.Session.SetString("oauth_state", state);
+                
+                // Build Google OAuth URL manually
+                var clientId = "691791342001-1fe3ibnclhhq6quo91nkof9ef228s4sj.apps.googleusercontent.com";
+                var redirectUri = "http://localhost:5260/auth/google/callback";
+                var scope = "openid profile email";
+                
+                var googleAuthUrl = $"https://accounts.google.com/o/oauth2/v2/auth" +
+                    $"?client_id={Uri.EscapeDataString(clientId)}" +
+                    $"&response_type=code" +
+                    $"&scope={Uri.EscapeDataString(scope)}" +
+                    $"&redirect_uri={Uri.EscapeDataString(redirectUri)}" +
+                    $"&state={Uri.EscapeDataString(state)}";
+                
+                Console.WriteLine($"Custom OAuth URL: {googleAuthUrl}");
+                Console.WriteLine($"Generated state: {state}");
+                
+                return Redirect(googleAuthUrl);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error initiating Google OAuth: {ex.Message}");
+                return Redirect($"/?error=oauth_initiation_failed&message={Uri.EscapeDataString(ex.Message)}");
+            }
+        }
+
     }
 }
 

@@ -10,6 +10,7 @@ namespace visor.Modules.UserManagement.DTOs
         public string LastName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string? PhoneNumber { get; set; }
+        public string? ProfilePicture { get; set; }
         public string FullName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public bool IsSuperAdmin { get; set; }

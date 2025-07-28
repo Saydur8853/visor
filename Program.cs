@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -38,10 +40,31 @@ builder.Services.AddScoped<IPrivilegeService, PrivilegeService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IPolicyService, PolicyService>();
 
+// Add distributed cache (required for session support)
+builder.Services.AddDistributedMemoryCache();
+
+// Add data protection for OAuth state management
+builder.Services.AddDataProtection();
+
+// Add session support for OAuth state management
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.None; // Allow HTTP for localhost
+    options.Cookie.Name = "__visor_session";
+    options.IOTimeout = TimeSpan.FromMinutes(5); // Increase timeout
+    options.Cookie.Path = "/";
+    options.Cookie.Domain = null; // Let it default to current domain
+});
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
@@ -55,6 +78,72 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
     };
+})
+.AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+{
+    options.LoginPath = "/api/auth/signin-google";
+    options.LogoutPath = "/api/auth/logout";
+    options.AccessDeniedPath = "/api/auth/access-denied";
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+    options.SlidingExpiration = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.None; // Allow HTTP for localhost
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.Name = "__visor_auth";
+})
+.AddGoogle(GoogleDefaults.AuthenticationScheme, options =>
+{
+    options.ClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID") ?? throw new InvalidOperationException("GOOGLE_CLIENT_ID environment variable is not set");
+    options.ClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET") ?? throw new InvalidOperationException("GOOGLE_CLIENT_SECRET environment variable is not set");
+    options.CallbackPath = "/auth/google/middleware-callback"; // Different path to avoid our controller
+    options.SaveTokens = true;
+    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    
+    // Enhanced configuration for state management
+    options.AccessDeniedPath = "/?error=access_denied";
+    options.ReturnUrlParameter = "returnUrl";
+    options.UsePkce = true; // Enable PKCE for better security
+    
+    // Configure cookies for better compatibility and state management
+    options.CorrelationCookie.SameSite = SameSiteMode.Lax;
+    options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.None; // Allow HTTP for localhost
+    options.CorrelationCookie.HttpOnly = true;
+    options.CorrelationCookie.IsEssential = true;
+    options.CorrelationCookie.Name = "__GoogleCorrelation";
+    options.CorrelationCookie.MaxAge = TimeSpan.FromMinutes(30); // Increase expiration
+    options.CorrelationCookie.Path = "/";
+    options.CorrelationCookie.Domain = null; // Let it default to current domain
+    options.CorrelationCookie.Expiration = TimeSpan.FromMinutes(30);
+    
+    // Add correlation cookie options for better state management
+    options.StateDataFormat = null; // Use default data protection
+    
+    // Disable built-in OAuth event handlers since we're using manual token exchange
+    options.Events.OnRemoteFailure = context =>
+    {
+        Console.WriteLine($"OAuth middleware failure (bypassed): {context.Failure?.Message}");
+        // Don't handle the failure here - let our manual callback handle it
+        return Task.CompletedTask;
+    };
+    
+    // Handle successful authentication (for logging only)
+    options.Events.OnTicketReceived = context =>
+    {
+        Console.WriteLine($"OAuth ticket received for user: {context.Principal?.Identity?.Name}");
+        return Task.CompletedTask;
+    };
+    
+    // Add redirect validation
+    options.Events.OnRedirectToAuthorizationEndpoint = context =>
+    {
+        Console.WriteLine($"Redirecting to Google OAuth: {context.RedirectUri}");
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
+    
+    // Handle OAuth timeout issues
+    options.RemoteAuthenticationTimeout = TimeSpan.FromMinutes(5);
 });
 
 builder.Services.AddAuthorization();
@@ -127,10 +216,18 @@ app.UseSwaggerUI(c =>
 });
 
 app.UseMiddleware<ExceptionMiddleware>();
-app.UseHttpsRedirection();
+
+// Only use HTTPS redirection in production
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // Enable static file serving
 app.UseStaticFiles();
+
+// Enable session middleware
+app.UseSession();
 
 app.UseAuthentication();
 app.UseAuthorization();

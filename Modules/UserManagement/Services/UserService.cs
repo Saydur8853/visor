@@ -24,13 +24,14 @@ namespace visor.Modules.UserManagement.Services
         Task<bool> ChangePasswordAsync(int userId, ChangePasswordDto changePasswordDto);
         Task<User?> ValidateUserAsync(string email, string password);
         Task<User?> ValidateUserByEmailOrPhoneAsync(string emailOrPhone, string password);
-        Task<UserDto> CreateUserWithInvitationAsync(SignupDto signupDto, Invitation invitation);
+        Task<UserDto> CreateUserWithInvitationAsync(SignupDto signupDto, Invitation invitation, string? profilePicture = null);
         Task<bool> IsFirstUserAsync();
         Task<bool> AssignRoleToUserAsync(int userId, int roleId);
         Task<bool> RemoveRoleFromUserAsync(int userId);
         Task<bool> UpdateUserStatusAsync(int userId, bool isActive);
         Task<bool> HasRoleAsync(int userId, string roleName);
         Task<bool> ResetPasswordAsync(string email, string newPassword);
+        Task<User?> GetActiveUserByEmailAsync(string email);
     }
 
     public class UserService : IUserService
@@ -75,6 +76,7 @@ namespace visor.Modules.UserManagement.Services
                 LastName = user.LastName,
                 Email = user.Email,
                 PhoneNumber = user.PhoneNumber,
+                ProfilePicture = user.ProfilePicture,
                 FullName = user.FullName,
                 IsActive = user.IsActive,
                 IsSuperAdmin = user.IsSuperAdmin,
@@ -105,6 +107,7 @@ namespace visor.Modules.UserManagement.Services
                 LastName = user.LastName,
                 Email = user.Email,
                 PhoneNumber = user.PhoneNumber,
+                ProfilePicture = user.ProfilePicture,
                 FullName = user.FullName,
                 IsActive = user.IsActive,
                 IsSuperAdmin = user.IsSuperAdmin,
@@ -210,7 +213,7 @@ namespace visor.Modules.UserManagement.Services
             return user;
         }
 
-        public async Task<UserDto> CreateUserWithInvitationAsync(SignupDto signupDto, Invitation invitation)
+        public async Task<UserDto> CreateUserWithInvitationAsync(SignupDto signupDto, Invitation invitation, string? profilePicture = null)
         {
             // Check if this is the first user (should be Super Admin)
             var isFirstUser = await IsFirstUserAsync();
@@ -222,6 +225,7 @@ namespace visor.Modules.UserManagement.Services
                 LastName = signupDto.LastName,
                 Email = signupDto.Email ?? string.Empty,
                 PhoneNumber = signupDto.PhoneNumber,
+                ProfilePicture = profilePicture,
                 PasswordHash = BC.HashPassword(signupDto.Password),
                 RoleId = roleId,
                 IsSuperAdmin = isFirstUser,
@@ -294,6 +298,13 @@ namespace visor.Modules.UserManagement.Services
 
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<User?> GetActiveUserByEmailAsync(string email)
+        {
+            return await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
         }
     }
 }

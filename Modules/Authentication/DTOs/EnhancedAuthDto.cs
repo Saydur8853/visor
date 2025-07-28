@@ -1,7 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using visor.Validation;
 
 namespace visor.Modules.Authentication.DTOs
 {
+    [EitherEmailOrPhoneRequired(ErrorMessage = "Either Email or Phone Number is required.")]
     public class SignupDto
     {
         [Required]

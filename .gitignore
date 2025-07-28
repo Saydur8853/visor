@@ -324,4 +324,9 @@ MigrationBackup/
 # Zip files
 *.zip
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+
 # End of https://www.toptal.com/developers/gitignore/api/visualstudio,dotnetcore

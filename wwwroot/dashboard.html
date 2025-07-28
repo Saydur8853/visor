@@ -9,7 +9,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            background: #f4f5f7;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -19,61 +19,223 @@
 
         .dashboard {
             background: white;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             padding: 40px;
             text-align: center;
             width: 90%;
             max-width: 600px;
         }
 
-        h1, h2 {
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
             color: #333;
-            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .user-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        h1 {
+            color: #333;
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        h2 {
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 1.5rem;
         }
 
         .logout-button {
             background: #dc3545;
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
+            padding: 12px 24px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 16px;
+            font-weight: 600;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .logout-button:hover {
             background: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
+        }
+
+        .dashboard-content {
+            padding: 20px 0;
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .dashboard {
+                padding: 30px 20px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="dashboard">
-        <h1>Welcome, <span id="userName">User</span>!</h1>
-        <h2>Dashboard</h2>
-        <button class="logout-button" onclick="logout()">Logout</button>
+        <div class="header">
+            <div class="user-info">
+                <div class="user-icon" id="userIcon">👤</div>
+<img id="userPicture" alt="User Picture" style="width: 40px; height: 40px; border-radius: 50%; display: none;"/>
+                <span id="userName">User</span>
+            </div>
+            <button class="logout-button" onclick="logout()">
+                🚪 Logout
+            </button>
+        </div>
+        
+        <div class="dashboard-content">
+            <h1>Welcome to your Dashboard!</h1>
+            <h2>Manage your API endpoints and monitor your services</h2>
+        </div>
     </div>
 
     <script>
-        // Retrieve user information from localStorage
-        const user = JSON.parse(localStorage.getItem('visor_user'));
+        // Check authentication and redirect if not logged in
+        const token = localStorage.getItem('visor_token');
+        const userString = localStorage.getItem('visor_user');
         
-        if (user) {
-            document.getElementById('userName').textContent = user.firstName;
+        if (!token || !userString) {
+            window.location.href = '/';
         }
-
-        // Logout function
-        function logout() {
+        
+        // Retrieve and display user information
+        try {
+            const user = JSON.parse(userString);
+            
+            console.log('=== Dashboard User Debug Info ===');
+            console.log('Raw userString from localStorage:', userString);
+            console.log('Parsed user object:', user);
+            console.log('All user properties:', Object.keys(user));
+            
+            if (user) {
+                // Check both Pascal and camelCase properties for compatibility
+                const firstName = user.FirstName || user.firstName || '';
+                const lastName = user.LastName || user.lastName || '';
+                const fullName = user.FullName || user.fullName || '';
+                const profilePicture = user.ProfilePicture || user.profilePicture || '';
+                
+                console.log('Normalized properties:');
+                console.log('firstName:', firstName);
+                console.log('lastName:', lastName);
+                console.log('fullName:', fullName);
+                console.log('profilePicture:', profilePicture);
+                
+                // Display user's name with better logic
+                let displayName = 'User'; // Default fallback
+                
+                if (fullName && fullName.trim() && fullName.trim() !== ' ') {
+                    displayName = fullName.trim();
+                } else if (firstName && firstName.trim()) {
+                    if (lastName && lastName.trim()) {
+                        displayName = `${firstName.trim()} ${lastName.trim()}`;
+                    } else {
+                        displayName = firstName.trim();
+                    }
+                } else if (lastName && lastName.trim()) {
+                    displayName = lastName.trim();
+                }
+                
+                console.log('Final display name:', displayName);
+                document.getElementById('userName').textContent = displayName;
+            
+                // Get references to UI elements
+                const userPicture = document.getElementById('userPicture');
+                const userIcon = document.getElementById('userIcon');
+                
+                // Display user's picture if available
+                if (profilePicture) {
+                    console.log('Setting profile picture:', profilePicture);
+                    userPicture.src = profilePicture;
+                    userPicture.style.display = 'block';
+                    userIcon.style.display = 'none';
+                    
+                    // Add error handling for image loading
+                    userPicture.onerror = function() {
+                        console.log('Failed to load profile picture, falling back to icon');
+                        userPicture.style.display = 'none';
+                        userIcon.style.display = 'flex';
+                        const firstLetter = firstName ? firstName.charAt(0).toUpperCase() : 'U';
+                        userIcon.textContent = firstLetter;
+                    };
+                } else {
+                    console.log('No profile picture found, using icon');
+                    // Display user's first letter in the icon
+                    const firstLetter = firstName ? firstName.charAt(0).toUpperCase() : 'U';
+                    userIcon.textContent = firstLetter;
+                }
+            }
+        } catch (error) {
+            console.error('Error parsing user data:', error);
+            // Clear invalid data and redirect to login
             localStorage.removeItem('visor_token');
             localStorage.removeItem('visor_user');
             window.location.href = '/';
         }
 
-        // Redirect to login if not authenticated
-        if (!localStorage.getItem('visor_token')) {
-            window.location.href = '/';
+        // Logout function
+        function logout() {
+            // Clear user data from localStorage
+            localStorage.removeItem('visor_token');
+            localStorage.removeItem('visor_user');
+            
+            // Show logging out message
+            const logoutButton = document.querySelector('.logout-button');
+            logoutButton.innerHTML = '⏳ Logging out...';
+            logoutButton.disabled = true;
+            
+            // Redirect to index page after a short delay
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1000);
         }
+        
+        // Welcome animation on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const dashboard = document.querySelector('.dashboard');
+            dashboard.style.opacity = '0';
+            dashboard.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                dashboard.style.transition = 'all 0.5s ease';
+                dashboard.style.opacity = '1';
+                dashboard.style.transform = 'translateY(0)';
+            }, 100);
+        });
     </script>
 </body>
 </html>
