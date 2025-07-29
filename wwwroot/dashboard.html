@@ -1662,6 +1662,10 @@ updateThemeIcon(savedTheme);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
+                // Only parse JSON if not a DELETE request
+                if (config.method === 'DELETE') {
+                    return true; // Successfully deleted
+                }
                 return await response.json();
             } catch (error) {
                 console.error('API call failed:', error);
@@ -1746,7 +1750,6 @@ updateThemeIcon(savedTheme);
                     <td>${createdDate}</td>
                     <td>
                         ${status === 'pending' ? `
-                            <button class="action-btn resend" title="Resend Invitation" onclick="resendInvitation(${invitation.id})">🔄</button>
                             <button class="action-btn cancel" title="Cancel Invitation" onclick="cancelInvitation(${invitation.id})">❌</button>
                         ` : ``}
                     </td>
@@ -1786,16 +1789,11 @@ updateThemeIcon(savedTheme);
         
         // Cancel invitation
         async function cancelInvitation(invitationId) {
-            if (!confirm('Are you sure you want to cancel this invitation?')) {
-                return;
-            }
-            
             try {
                 await apiCall(`/api/invitations/${invitationId}`, {
                     method: 'DELETE'
                 });
                 
-                alert('Invitation cancelled successfully!');
                 loadInvitations(); // Refresh the invitations list
             } catch (error) {
                 console.error('Failed to cancel invitation:', error);
@@ -1803,10 +1801,6 @@ updateThemeIcon(savedTheme);
             }
         }
         
-        // Resend invitation (for now, we don't have a resend endpoint, so we'll show a message)
-        function resendInvitation(invitationId) {
-            alert('Resend functionality will be implemented in a future update.');
-        }
         
         
         // Handle invitation form submission
