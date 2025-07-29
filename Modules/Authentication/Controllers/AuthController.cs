@@ -87,28 +87,32 @@ namespace visor.Modules.Authentication.Controllers
             if (!string.IsNullOrEmpty(signupDto.Email) && await _userService.UserExistsAsync(signupDto.Email))
                 return BadRequest(new { message = "User with this email already exists" });
 
-            // Check invitation if provided
+            // Check if this is the first user
+            var isFirstUser = await _userService.IsFirstUserAsync();
+            
             Invitation? invitation = null;
-            if (!string.IsNullOrEmpty(signupDto.InvitationToken) && !string.IsNullOrEmpty(signupDto.Email))
+            
+            if (isFirstUser)
             {
-                invitation = await _invitationService.GetValidInvitationAsync(signupDto.Email);
-                if (invitation == null)
-                    return BadRequest(new { message = "Invalid or expired invitation" });
-            }
-            else
-            {
-                // For signup without invitation, create a default invitation (for first user or normal user)
-                var isFirstUser = await _userService.IsFirstUserAsync();
-                var defaultRoleId = isFirstUser ? 1 : 2; // Super Admin for first user, Normal User for others
-                
+                // First user signup - automatically becomes superuser, no invitation needed
                 invitation = new Invitation
                 {
                     Email = signupDto.Email ?? string.Empty,
                     PhoneNumber = signupDto.PhoneNumber,
-                    RoleId = defaultRoleId,
+                    RoleId = 1, // Super Admin role
                     ExpiresAt = DateTime.UtcNow.AddDays(1),
                     IsUsed = false
                 };
+            }
+            else
+            {
+                // For all subsequent users, invitation is required
+                if (string.IsNullOrEmpty(signupDto.Email))
+                    return BadRequest(new { message = "Email is required for invitation-based signup" });
+                    
+                invitation = await _invitationService.GetValidInvitationAsync(signupDto.Email);
+                if (invitation == null)
+                    return BadRequest(new { message = "This email is not invited, please contact Admin" });
             }
 
             var userDto = await _userService.CreateUserWithInvitationAsync(signupDto, invitation);

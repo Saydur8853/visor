@@ -197,17 +197,47 @@
             cursor: pointer;
             transition: all 0.3s ease;
             margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
         }
 
-        .auth-button:hover {
+        .auth-button:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
         }
 
         .auth-button:disabled {
-            opacity: 0.6;
+            opacity: 0.7;
             cursor: not-allowed;
             transform: none;
+            background: linear-gradient(135deg, #9ca3ea 0%, #a689c2 100%);
+        }
+
+        .auth-button.loading {
+            padding-left: 45px;
+        }
+
+        .auth-button .button-spinner {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: buttonSpin 1s linear infinite;
+            display: none;
+        }
+
+        .auth-button.loading .button-spinner {
+            display: block;
+        }
+
+        @keyframes buttonSpin {
+            0% { transform: translateY(-50%) rotate(0deg); }
+            100% { transform: translateY(-50%) rotate(360deg); }
         }
 
         .forgot-password {
@@ -518,7 +548,8 @@
                 </div>
                 
                 <button type="submit" class="auth-button" id="loginButton">
-                    Sign In
+                    <span class="button-spinner"></span>
+                    <span class="button-text">Sign In</span>
                 </button>
                 
                 <div class="divider"><span>or</span></div>
@@ -748,12 +779,32 @@
         // Loading states
         function showLoading(formType) {
             document.getElementById(formType + 'Loading').classList.add('show');
-            document.getElementById(formType + 'Button').disabled = true;
+            const button = document.getElementById(formType + 'Button');
+            button.disabled = true;
+            button.classList.add('loading');
+            
+            // Update button text for login
+            if (formType === 'login') {
+                const buttonText = button.querySelector('.button-text');
+                if (buttonText) {
+                    buttonText.textContent = 'Signing in...';
+                }
+            }
         }
 
         function hideLoading(formType) {
             document.getElementById(formType + 'Loading').classList.remove('show');
-            document.getElementById(formType + 'Button').disabled = false;
+            const button = document.getElementById(formType + 'Button');
+            button.disabled = false;
+            button.classList.remove('loading');
+            
+            // Reset button text for login
+            if (formType === 'login') {
+                const buttonText = button.querySelector('.button-text');
+                if (buttonText) {
+                    buttonText.textContent = 'Sign In';
+                }
+            }
         }
 
         // Error handling
@@ -896,12 +947,8 @@
                 localStorage.setItem('visor_token', response.token);
                 localStorage.setItem('visor_user', JSON.stringify(response.user));
                 
-                showAlert('success', `Welcome back, ${response.user.firstName}! Redirecting to dashboard...`);
-                
-                // Redirect to dashboard (you can change this URL)
-                setTimeout(() => {
-                    window.location.href = '/dashboard.html';
-                }, 2000);
+                // Redirect to dashboard immediately without showing success message
+                window.location.href = '/dashboard.html';
                 
             } catch (error) {
                 console.error('Login error:', error);
@@ -1376,10 +1423,8 @@
                         const fullName = userData.FullName || userData.fullName || '';
                         const displayName = fullName.trim() || firstName;
                         
-                        showAlert('success', `Welcome back, ${displayName}! Redirecting to dashboard...`);
-                        setTimeout(() => {
-                            window.location.href = '/dashboard.html';
-                        }, 2000);
+                        // Redirect immediately without showing success message
+                        window.location.href = '/dashboard.html';
                     } catch (error) {
                         // Clear invalid stored data
                         localStorage.removeItem('visor_token');

@@ -235,6 +235,32 @@ namespace visor.Controllers
                 }
                 else
                 {
+                    // Check if this is the first user
+                    var isFirstUser = await _userService.IsFirstUserAsync();
+                    
+                    Invitation? invitation;
+                    
+                    if (isFirstUser)
+                    {
+                        // First user signup - automatically becomes superuser, no invitation needed
+                        invitation = new Invitation
+                        {
+                            Email = email,
+                            RoleId = 1, // Super Admin role
+                            ExpiresAt = DateTime.UtcNow.AddDays(1),
+                            IsUsed = false
+                        };
+                    }
+                    else
+                    {
+                        // For all subsequent users, invitation is required (same as form signup)
+                        invitation = await _invitationService.GetValidInvitationAsync(email);
+                        if (invitation == null)
+                        {
+                            return Redirect($"/?error=not_invited&message={Uri.EscapeDataString("This email is not invited, please contact Admin")}");
+                        }
+                    }
+
                     // Create new user
                     var signupDto = new SignupDto
                     {
@@ -250,16 +276,11 @@ namespace visor.Controllers
                     signupDto.Password = tempPassword;
                     signupDto.ConfirmPassword = tempPassword;
 
-                    // Create default invitation for Google user
-                    var invitation = new Invitation
-                    {
-                        Email = email,
-                        RoleId = 2, // Normal User role
-                        ExpiresAt = DateTime.UtcNow.AddDays(1),
-                        IsUsed = false
-                    };
-
                     var userDto = await _userService.CreateUserWithInvitationAsync(signupDto, invitation, picture);
+                    
+                    // Mark invitation as used if it was provided
+                    if (invitation.Id > 0)
+                        await _invitationService.MarkInvitationAsUsedAsync(invitation.Id);
                     
                     // Generate token for the new user
                     var newUser = await _userService.GetActiveUserByEmailAsync(email);

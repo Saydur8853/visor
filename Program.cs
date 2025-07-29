@@ -21,12 +21,13 @@ if (File.Exists(".env"))
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Handle Elastic Beanstalk environment variables for database connection
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// Build database connection string from environment variables
+string connectionString;
 
-// Replace environment variable placeholders if they exist
+// Check for production AWS RDS configuration first
 if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RDS_HOSTNAME")))
 {
+    // Production environment (AWS RDS)
     connectionString = $"Server={Environment.GetEnvironmentVariable("RDS_HOSTNAME")};"
                     + $"Database={Environment.GetEnvironmentVariable("RDS_DB_NAME")};"
                     + $"User={Environment.GetEnvironmentVariable("RDS_USERNAME")};"
@@ -34,19 +35,27 @@ if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RDS_HOSTNAME")))
                     + $"Port={Environment.GetEnvironmentVariable("RDS_PORT")};"
                     + "SslMode=Required;";
 }
-
-// Use in-memory database for development
-if (builder.Environment.IsDevelopment())
+// Check for local development environment variables
+else if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DB_HOST")))
 {
-    builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        options.UseInMemoryDatabase("VisorDevDB"));
+    // Local development environment (from .env file)
+    connectionString = $"Server={Environment.GetEnvironmentVariable("DB_HOST")};"
+                    + $"Database={Environment.GetEnvironmentVariable("DB_NAME")};"
+                    + $"User={Environment.GetEnvironmentVariable("DB_USERNAME")};"
+                    + $"Password={Environment.GetEnvironmentVariable("DB_PASSWORD")};"
+                    + $"Port={Environment.GetEnvironmentVariable("DB_PORT")};";
 }
 else
 {
-    builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        options.UseMySql(connectionString, 
-            ServerVersion.AutoDetect(connectionString)));
+    // Fallback to appsettings.json (not recommended for production)
+    connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+        ?? throw new InvalidOperationException("No database connection configuration found. Please set environment variables or configure appsettings.json");
 }
+
+// Use MySQL database for both development and production
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseMySql(connectionString, 
+        ServerVersion.Parse("8.0.33-mysql")));
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRoleService, RoleService>();

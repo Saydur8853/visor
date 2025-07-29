@@ -13,7 +13,7 @@ namespace visor.Modules.UserManagement.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Super Admin")]
+    [Authorize] // Allow all authenticated users
     public class InvitationsController : ControllerBase
     {
         private readonly IInvitationService _invitationService;
@@ -36,7 +36,6 @@ namespace visor.Modules.UserManagement.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Super Admin,Property Admin,Security Admin")]
         public async Task<ActionResult<IEnumerable<InvitationDto>>> GetInvitations()
         {
             var invitations = await _invitationService.GetAllInvitationsAsync();
@@ -44,7 +43,6 @@ namespace visor.Modules.UserManagement.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Super Admin,Property Admin,Security Admin")]
         public async Task<ActionResult<InvitationDto>> GetInvitation(int id)
         {
             var invitation = await _invitationService.GetInvitationByIdAsync(id);
