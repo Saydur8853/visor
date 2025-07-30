@@ -123,7 +123,7 @@ builder.Services.AddAuthentication(options =>
 {
     options.ClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID") ?? throw new InvalidOperationException("GOOGLE_CLIENT_ID environment variable is not set");
     options.ClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET") ?? throw new InvalidOperationException("GOOGLE_CLIENT_SECRET environment variable is not set");
-    options.CallbackPath = "/auth/google/middleware-callback"; // Different path to avoid our controller
+    options.CallbackPath = Environment.GetEnvironmentVariable("GOOGLE_CALLBACK_PATH") ?? "/auth/google/middleware-callback"; // Different path to avoid our controller
     options.SaveTokens = true;
     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     

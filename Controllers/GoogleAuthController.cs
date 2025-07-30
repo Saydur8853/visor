@@ -104,7 +104,7 @@ namespace visor.Controllers
                     new("code", authCode),
                     new("client_id", Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID") ?? throw new InvalidOperationException("GOOGLE_CLIENT_ID environment variable is not set")),
                     new("client_secret", Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET") ?? throw new InvalidOperationException("GOOGLE_CLIENT_SECRET environment variable is not set")),
-                    new("redirect_uri", "http://localhost:5260/auth/google/callback")
+                    new("redirect_uri", Environment.GetEnvironmentVariable("GOOGLE_REDIRECT_URI") ?? "http://localhost:5260/auth/google/callback")
                 };
                 
                 Console.WriteLine("Sending token request to Google...");
