@@ -97,13 +97,6 @@
                 color: rgba(255, 255, 255, 1);
             }
 
-            .sidebar li.active::after {
-                content: '▶';
-                position: absolute;
-                right: 20px;
-                color: rgba(255, 255, 255, 1);
-                font-size: 12px;
-            }
 
             .sidebar .submenu li {
                 padding-left: 40px;
@@ -800,7 +793,7 @@
     background-color: rgba(255, 255, 255, 0.1);
     border-left-color: rgba(255, 255, 255, 0.8);
     color: rgba(255, 255, 255, 0.9);
-    transform: translateX(5px);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
 }
 
 .nav-item.active {
@@ -810,13 +803,6 @@
     font-weight: 600;
 }
 
-.nav-item.active::after {
-    content: '▶';
-    position: absolute;
-    right: 20px;
-    color: rgba(255, 255, 255, 1);
-    font-size: 12px;
-}
 
 .nav-icon {
     margin-right: 12px;
@@ -1285,13 +1271,13 @@
             
             <div class="sidebar-content">
                 <ul class="nav-menu">
-                    <li class="nav-item active" onclick="navigateTo('dashboard')">
+                    <li class="nav-item active" onclick="navigateTo('dashboard')" title="View Dashboard Overview">
                         <span class="nav-icon">
                             <img src="assets/icons/ui/dashboard.png" alt="Dashboard">
                         </span>
                         <span class="nav-text">Dashboard</span>
                     </li>
-                    <li class="nav-item" onclick="navigateTo('invitation')">
+                    <li class="nav-item" onclick="navigateTo('invitation')" title="Manage User Invitations">
                         <span class="nav-icon">
                             <img src="assets/icons/ui/invitation.png" alt="Invitation">
                         </span>
