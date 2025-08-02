@@ -117,8 +117,7 @@ builder.Services.AddAuthentication(options =>
     options.Cookie.IsEssential = true;
     options.Cookie.Name = "__visor_auth";
 })
-// Google OAuth temporarily disabled - uncomment and set environment variables to enable
-/*
+// Google OAuth configuration
 .AddGoogle(GoogleDefaults.AuthenticationScheme, options =>
 {
     options.ClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID") ?? throw new InvalidOperationException("GOOGLE_CLIENT_ID environment variable is not set");
@@ -172,7 +171,6 @@ builder.Services.AddAuthentication(options =>
     // Handle OAuth timeout issues
     options.RemoteAuthenticationTimeout = TimeSpan.FromMinutes(5);
 });
-*/;
 
 builder.Services.AddAuthorization();
 

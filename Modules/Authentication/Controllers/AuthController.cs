@@ -277,8 +277,8 @@ namespace visor.Modules.Authentication.Controllers
                 HttpContext.Session.SetString("oauth_state", state);
                 
                 // Build Google OAuth URL manually
-                var clientId = "691791342001-1fe3ibnclhhq6quo91nkof9ef228s4sj.apps.googleusercontent.com";
-                var redirectUri = "http://localhost:5260/auth/google/callback";
+                var clientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID") ?? throw new InvalidOperationException("GOOGLE_CLIENT_ID environment variable is not set");
+                var redirectUri = Environment.GetEnvironmentVariable("GOOGLE_REDIRECT_URI") ?? "http://localhost:5260/auth/google/callback";
                 var scope = "openid profile email";
                 
                 var googleAuthUrl = $"https://accounts.google.com/o/oauth2/v2/auth" +
